@@ -83,11 +83,10 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[4:])
 
-			reply, err := netconfOperation(s, ctx, xpath, nil, "get")
+			err := netconfOperation(s, ctx, xpath, nil, "get")
 			if err != nil {
 				println("ERROR: ", err)
 			}
-			println("\n", reply)
 		case strings.HasPrefix(line, "get-config "):
 			if s == nil {
 				print("Please login first\n")
@@ -95,11 +94,10 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[11:])
 
-			reply, err := netconfOperation(s, ctx, xpath, nil, "get-config")
+			err := netconfOperation(s, ctx, xpath, nil, "get-config")
 			if err != nil {
 				println("ERROR: ", err)
 			}
-			println("\n", reply)
 		case strings.HasPrefix(line, "set "):
 			if s == nil {
 				print("Please login first\n")
@@ -107,11 +105,10 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[4:])
 
-			reply, err := netconfOperation(s, ctx, xpath, nil, "set")
+			err := netconfOperation(s, ctx, xpath, nil, "set")
 			if err != nil {
 				println("ERROR: ", err)
 			}
-			println("\n", reply)
 		case line == "mode":
 			if l.IsVimMode() {
 				println("current mode: vim")
