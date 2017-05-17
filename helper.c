@@ -20,9 +20,22 @@
  */
 
 #include <libyang/libyang.h>
+#include <libyang/tree_data.h>
 #include "helper.h"
 #include "_cgo_export.h"
 
 void CErrorCallback(LY_LOG_LEVEL level, const char *msg, const char *path) {
 	return GoErrorCallback(level, (char *) msg, (char *) path);
+}
+
+struct lyd_node *go_lyd_parse_mem(struct ly_ctx *ctx, const char *data, LYD_FORMAT format, int options) {
+	return lyd_parse_mem(ctx, data, format, options);
+}
+
+struct lyd_node *get_item(struct ly_set *set, int item) {
+	if (item > set->number) {
+		return NULL;
+	}
+
+    return set->set.d[item];
 }
