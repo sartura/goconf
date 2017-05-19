@@ -23,6 +23,8 @@ import (
 */
 import "C"
 
+var showLibyangLogs bool
+
 type data struct {
 	XMLName xml.Name `xml:"data"`
 	Schema  []schema `xml:"netconf-state>schemas>schema"`
@@ -76,7 +78,8 @@ func getLastNonLeafNode(ctx *C.struct_ly_ctx, xpath string) *C.struct_lyd_node {
 	items := strings.Split(xpath, "/")
 	newXpath := ""
 
-	//TODO turn off libyang logs
+	//turn off libyang logs
+	tmpShowLibyangLogs := showLibyangLogs
 	for item := range items {
 		newXpath = newXpath + items[item]
 		tmp = C.lyd_new_path(nil, ctx, C.CString(newXpath), nil, 0, 0)
@@ -86,6 +89,7 @@ func getLastNonLeafNode(ctx *C.struct_ly_ctx, xpath string) *C.struct_lyd_node {
 		}
 		newXpath = newXpath + "/"
 	}
+	showLibyangLogs = tmpShowLibyangLogs
 
 	return node
 }
@@ -230,7 +234,9 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 
 //export GoErrorCallback
 func GoErrorCallback(level C.LY_LOG_LEVEL, msg *C.char, path *C.char) {
-	log.Printf("libyang error: %s\n", C.GoString(msg))
+	if showLibyangLogs {
+		log.Printf("libyang error: %s\n", C.GoString(msg))
+	}
 	return
 }
 
