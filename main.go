@@ -115,6 +115,10 @@ func main() {
 			} else {
 				println("current mode: emacs")
 			}
+		case line == "logout":
+			cleanNetconfContext(ctx, s)
+			ctx = nil
+			s = nil
 		case line == "login":
 			if s != nil {
 				print("you are already loged in\n")
