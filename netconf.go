@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"unsafe"
 
 	"encoding/xml"
@@ -36,7 +37,7 @@ type schema struct {
 	Location   string   `xml:"location"`
 }
 
-func printRecursiveXPATH(node *C.struct_lyd_node, parent *C.struct_lyd_node) {
+func printRecursiveXPATH(node *C.struct_lyd_node, first bool, parent *C.struct_lyd_node) {
 
 	if node == nil {
 		return
@@ -52,17 +53,41 @@ func printRecursiveXPATH(node *C.struct_lyd_node, parent *C.struct_lyd_node) {
 		stringXpath := C.lyd_path(node)
 		println(C.GoString(stringXpath) + " " + C.GoString((*C.struct_lyd_node_leaf_list)(unsafe.Pointer(node)).value_str))
 		C.free(unsafe.Pointer(stringXpath))
+		if first {
+			return
+		}
 	}
 
 	if node.next != nil {
-		printRecursiveXPATH(node.next, node.parent)
+		printRecursiveXPATH(node.next, false, node.parent)
 	}
 
 	if node.child != nil {
-		printRecursiveXPATH(node.child, node)
+		printRecursiveXPATH(node.child, false, node)
 	}
 
 	return
+}
+
+func getLastNonLeafNode(ctx *C.struct_ly_ctx, xpath string) *C.struct_lyd_node {
+	var node *C.struct_lyd_node
+	var tmp *C.struct_lyd_node
+
+	items := strings.Split(xpath, "/")
+	newXpath := ""
+
+	//TODO turn off libyang logs
+	for item := range items {
+		newXpath = newXpath + items[item]
+		tmp = C.lyd_new_path(nil, ctx, C.CString(newXpath), nil, 0, 0)
+		if tmp != nil {
+			C.lyd_free_withsiblings(node)
+			node = tmp
+		}
+		newXpath = newXpath + "/"
+	}
+
+	return node
 }
 
 func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string, xpath string, value string, operationString string) error {
@@ -81,7 +106,7 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 	if operation == C.LYD_OPT_EDIT {
 		node = C.lyd_new_path(nil, ctx, C.CString(xpath), unsafe.Pointer(C.CString(value)), 0, 0)
 	} else {
-		node = C.lyd_new_path(nil, ctx, C.CString(xpath), nil, 0, 0)
+		node = getLastNonLeafNode(ctx, xpath)
 	}
 	if node == nil {
 		return errors.New("libyang error: lyd_new_path")
@@ -147,7 +172,7 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 
 	// bugfix, structs are wrongly allocated
 	// test validity with parent comparison
-	printRecursiveXPATH(C.get_item(set, C.int(0)), nil)
+	printRecursiveXPATH(C.get_item(set, C.int(0)), true, nil)
 
 	return nil
 }
