@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"strings"
+	"unicode"
 
 	"golang.org/x/crypto/ssh"
 
@@ -88,9 +89,9 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[4:])
 
-			err := netconfOperation(s, ctx, datastore, xpath, nil, "get")
+			err := netconfOperation(s, ctx, datastore, xpath, "", "get")
 			if err != nil {
-				println("ERROR: ", err)
+				println("ERROR: ", err.Error())
 			}
 		case strings.HasPrefix(line, "get-config "):
 			if s == nil {
@@ -99,21 +100,45 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[11:])
 
-			err := netconfOperation(s, ctx, datastore, xpath, nil, "get-config")
+			err := netconfOperation(s, ctx, datastore, xpath, "", "get-config")
 			if err != nil {
-				println("ERROR: ", err)
+				println("ERROR: ", err.Error())
 			}
 		case strings.HasPrefix(line, "set "):
 			if s == nil {
 				print("Please login first\n")
 				break
 			}
-			xpath := strings.TrimSpace(line[4:])
+			setItem := strings.TrimSpace(line[4:])
 
-			err := netconfOperation(s, ctx, datastore, xpath, nil, "set")
-			if err != nil {
-				println("ERROR: ", err)
+			lastQuote := rune(0)
+			f := func(c rune) bool {
+				switch {
+				case c == lastQuote:
+					lastQuote = rune(0)
+					return false
+				case lastQuote != rune(0):
+					return false
+				case unicode.In(c, unicode.Quotation_Mark):
+					lastQuote = c
+					return false
+				default:
+					return unicode.IsSpace(c)
+
+				}
 			}
+
+			m := strings.FieldsFunc(setItem, f)
+			if len(m) > 2 {
+				print("Too many arguments!\n")
+				break
+			}
+
+			err := netconfOperation(s, ctx, datastore, m[0], m[1], "set")
+			if err != nil {
+				println("ERROR: ", err.Error())
+			}
+
 		case line == "mode":
 			if l.IsVimMode() {
 				println("current mode: vim")

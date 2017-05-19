@@ -65,20 +65,7 @@ func printRecursiveXPATH(node *C.struct_lyd_node, parent *C.struct_lyd_node) {
 	return
 }
 
-func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string, xpath string, value *string, operationString string) error {
-
-	node := C.lyd_new_path(nil, ctx, C.CString(xpath), nil, 0, 0)
-	if node == nil {
-		return errors.New("libyang error")
-	}
-	defer C.lyd_free_withsiblings(node)
-
-	var xpathXML *C.char
-	C.lyd_print_mem(&xpathXML, node, C.LYD_XML, 0)
-	if xpathXML == nil {
-		return errors.New("libyang error")
-	}
-	defer C.free(unsafe.Pointer(xpathXML))
+func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string, xpath string, value string, operationString string) error {
 
 	var operation int
 	switch {
@@ -90,6 +77,24 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 		operation = C.LYD_OPT_EDIT
 	}
 
+	var node *C.struct_lyd_node
+	if operation == C.LYD_OPT_EDIT {
+		node = C.lyd_new_path(nil, ctx, C.CString(xpath), unsafe.Pointer(C.CString(value)), 0, 0)
+	} else {
+		node = C.lyd_new_path(nil, ctx, C.CString(xpath), nil, 0, 0)
+	}
+	if node == nil {
+		return errors.New("libyang error: lyd_new_path")
+	}
+	defer C.lyd_free_withsiblings(node)
+
+	var xpathXML *C.char
+	C.lyd_print_mem(&xpathXML, node, C.LYD_XML, 0)
+	if xpathXML == nil {
+		return errors.New("libyang error: lyd_print_mem")
+	}
+	defer C.free(unsafe.Pointer(xpathXML))
+
 	netconfXML := ""
 	switch {
 	case operation == C.LYD_OPT_GETCONFIG:
@@ -99,7 +104,7 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 	case operation == C.LYD_OPT_EDIT:
 		netconfXML = "<edit-config xmlns:nc='urn:ietf:params:xml:ns:netconf:base:1.0'><target><" + datastore + "/></target><config>" + C.GoString(xpathXML) + "</config></edit-config>"
 	default:
-		return errors.New("invalid operation")
+		return errors.New("NETCONF: invalid operation")
 	}
 
 	reply, err := s.Exec(netconf.RawMethod(netconfXML))
@@ -107,33 +112,37 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 		return err
 	}
 
+	if operation == C.LYD_OPT_EDIT {
+		return nil
+	}
+
 	// remove top <data> xml node
 	lyxml := C.lyxml_parse_mem(ctx, C.CString(reply.Data), C.LYXML_PARSE_MULTIROOT)
 	if lyxml == nil {
-		return errors.New("libyang error")
+		return errors.New("libyang error: lyxml_parse_mem")
 	}
 	defer C.lyxml_free(ctx, lyxml)
 	var xmlNoData *C.char
 	C.lyxml_print_mem(&xmlNoData, lyxml.child, 0)
 	if xmlNoData == nil {
-		return errors.New("libyang error")
+		return errors.New("libyang error: lyxml_print_mem")
 	}
 	defer C.free(unsafe.Pointer(xmlNoData))
 
 	dataNode := C.go_lyd_parse_mem(ctx, xmlNoData, C.LYD_XML, C.int(operation))
 	if dataNode == nil {
-		return errors.New("libyang error")
+		return errors.New("libyang error: go_lyd_parse_mem")
 	}
 	defer C.lyd_free_withsiblings(dataNode)
 
 	set := C.lyd_find_xpath(dataNode, C.CString(xpath))
 	if set == nil {
-		return errors.New("libyang error")
+		return errors.New("libyang error: lyd_find_xpath")
 	}
 	defer C.ly_set_free(set)
 
 	if set.number == 0 {
-		return errors.New("No data found")
+		return errors.New("No data found: ly_set_free")
 	}
 
 	// bugfix, structs are wrongly allocated
