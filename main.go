@@ -23,9 +23,11 @@ var completer = readline.NewPrefixCompleter(
 		readline.PcItem("emacs"),
 	),
 	readline.PcItem("login"),
+	readline.PcItem("logout"),
 	readline.PcItem("get"),
 	readline.PcItem("get-config"),
 	readline.PcItem("set"),
+	readline.PcItem("datastore"),
 	readline.PcItem("quit"),
 )
 
@@ -47,10 +49,13 @@ func main() {
 	}
 	defer l.Close()
 
+	var datastore string
 	var username string
 	var password []byte
 	var ip string
 	var port string
+
+	datastore = "running"
 
 	setPasswordCfg := l.GenPasswordConfig()
 	setPasswordCfg.SetListener(func(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
@@ -83,7 +88,7 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[4:])
 
-			err := netconfOperation(s, ctx, xpath, nil, "get")
+			err := netconfOperation(s, ctx, datastore, xpath, nil, "get")
 			if err != nil {
 				println("ERROR: ", err)
 			}
@@ -94,7 +99,7 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[11:])
 
-			err := netconfOperation(s, ctx, xpath, nil, "get-config")
+			err := netconfOperation(s, ctx, datastore, xpath, nil, "get-config")
 			if err != nil {
 				println("ERROR: ", err)
 			}
@@ -105,7 +110,7 @@ func main() {
 			}
 			xpath := strings.TrimSpace(line[4:])
 
-			err := netconfOperation(s, ctx, xpath, nil, "set")
+			err := netconfOperation(s, ctx, datastore, xpath, nil, "set")
 			if err != nil {
 				println("ERROR: ", err)
 			}
@@ -115,6 +120,20 @@ func main() {
 			} else {
 				println("current mode: emacs")
 			}
+		case strings.HasPrefix(line, "datastore "):
+			datastoreInput := strings.TrimSpace(line[10:])
+
+			switch {
+			case datastoreInput == "startup":
+				datastore = datastoreInput
+			case datastoreInput == "running":
+				datastore = datastoreInput
+			case datastoreInput == "candidate":
+				datastore = datastoreInput
+			default:
+				print("invalid datastore!\n")
+			}
+
 		case line == "logout":
 			cleanNetconfContext(ctx, s)
 			ctx = nil

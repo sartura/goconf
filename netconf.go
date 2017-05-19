@@ -65,7 +65,7 @@ func printRecursiveXPATH(node *C.struct_lyd_node, parent *C.struct_lyd_node) {
 	return
 }
 
-func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, xpath string, value *string, operationString string) error {
+func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string, xpath string, value *string, operationString string) error {
 
 	node := C.lyd_new_path(nil, ctx, C.CString(xpath), nil, 0, 0)
 	if node == nil {
@@ -93,11 +93,11 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, xpath string, va
 	netconfXML := ""
 	switch {
 	case operation == C.LYD_OPT_GETCONFIG:
-		netconfXML = "<get-config><source><running/></source><filter>" + C.GoString(xpathXML) + "</filter></get-config>"
+		netconfXML = "<get-config><source><" + datastore + "/></source><filter>" + C.GoString(xpathXML) + "</filter></get-config>"
 	case operation == C.LYD_OPT_GET:
 		netconfXML = "<get><filter type=\"subtree\">" + C.GoString(xpathXML) + "</filter></get>"
 	case operation == C.LYD_OPT_EDIT:
-		netconfXML = "<edit-config xmlns:nc='urn:ietf:params:xml:ns:netconf:base:1.0'><target><running/></target><config>" + C.GoString(xpathXML) + "</config></edit-config>"
+		netconfXML = "<edit-config xmlns:nc='urn:ietf:params:xml:ns:netconf:base:1.0'><target><" + datastore + "/></target><config>" + C.GoString(xpathXML) + "</config></edit-config>"
 	default:
 		return errors.New("invalid operation")
 	}
