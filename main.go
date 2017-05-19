@@ -171,31 +171,31 @@ func main() {
 			var auth *ssh.ClientConfig
 
 			// hard code loginn
-			/*
-				l.SetPrompt("username: ")
-				username, err = l.Readline()
-				if err != nil {
-					goto login_fail
-				}
-				password, err = l.ReadPassword("password: ")
-				if err != nil {
-					goto login_fail
-				}
-				l.SetPrompt("ip: ")
-				ip, err = l.Readline()
-				if err != nil {
-					goto login_fail
-				}
-				l.SetPrompt("port: ")
-				port, err = l.Readline()
-				if err != nil {
-					goto login_fail
-				}
-			*/
-			username = "netconf"
-			password = []byte("netconf")
-			ip = "localhost"
-			port = "830"
+			///*
+			l.SetPrompt("username: ")
+			username, err = l.Readline()
+			if err != nil {
+				goto login_fail
+			}
+			password, err = l.ReadPassword("password: ")
+			if err != nil {
+				goto login_fail
+			}
+			l.SetPrompt("ip: ")
+			ip, err = l.Readline()
+			if err != nil {
+				goto login_fail
+			}
+			l.SetPrompt("port: ")
+			port, err = l.Readline()
+			if err != nil {
+				goto login_fail
+			}
+			//*/
+			//username = "netconf"
+			//password = []byte("netconf")
+			//ip = "localhost"
+			//port = "830"
 
 			// create new libyang context with the remote yang files
 			l.SetPrompt("\033[31m»\033[0m ")
