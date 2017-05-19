@@ -42,6 +42,8 @@ func printRecursiveXPATH(node *C.struct_lyd_node) {
 		return
 	}
 
+	println("Validity")
+	println(node.validity)
 	if node.validity == 0 {
 		if node.schema.nodetype == C.LYS_LEAF || node.schema.nodetype == C.LYS_LEAFLIST {
 			stringXpath := C.lyd_path(node)
@@ -115,11 +117,13 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, xpath string, va
 	}
 	defer C.lyd_free_withsiblings(dataNode)
 
-	set := C.lyd_find_xpath(dataNode, C.CString(xpath))
+	set := C.lyd_find_xpath(dataNode, C.CString("/ietf-interfaces:interfaces/interface[name='eth0']/enabled"))
 	if set == nil {
 		return "", errors.New("libyang error")
 	}
 	defer C.ly_set_free(set)
+
+	println("NUMBER -> ", set.number)
 
 	printRecursiveXPATH(C.get_item(set, C.int(0)))
 
