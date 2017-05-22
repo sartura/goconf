@@ -129,12 +129,14 @@ func main() {
 			}
 
 			m := strings.FieldsFunc(setItem, f)
-			if len(m) > 2 {
-				print("Too many arguments!\n")
-				break
+
+			// sum everything after the xpath
+			value := m[1]
+			for i := 2; i < len(m); i++ {
+				value = value + " " + m[i]
 			}
 
-			err := netconfOperation(s, ctx, datastore, m[0], m[1], "set")
+			err := netconfOperation(s, ctx, datastore, m[0], value, "set")
 			if err != nil {
 				println("ERROR: ", err.Error())
 			}
