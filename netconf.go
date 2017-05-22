@@ -233,7 +233,7 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 	// hack to keep alive the connection
 	//TODO fix this
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(18 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
 			_, err := s.Exec(netconf.RawMethod("<keep-alive/>"))
