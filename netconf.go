@@ -165,9 +165,9 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 	}
 	defer C.lyd_free_withsiblings(dataNode)
 
-	set := C.lyd_find_xpath(dataNode, C.CString(xpath))
+	set := C.lyd_find_path(dataNode, C.CString(xpath))
 	if set == nil {
-		return errors.New("libyang error: lyd_find_xpath")
+		return errors.New("libyang error: lyd_find_path")
 	}
 	defer C.ly_set_free(set)
 
