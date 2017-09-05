@@ -40,38 +40,6 @@ type schema struct {
 	Location   string   `xml:"location"`
 }
 
-func printRecursiveXPATH(node *C.struct_lyd_node, first bool, parent *C.struct_lyd_node) {
-
-	if node == nil {
-		return
-	}
-
-	if parent != nil {
-		if node.parent != parent {
-			return
-		}
-	}
-
-	if node.schema.nodetype == C.LYS_LEAF || node.schema.nodetype == C.LYS_LEAFLIST {
-		stringXpath := C.lyd_path(node)
-		println(C.GoString(stringXpath) + " " + C.GoString((*C.struct_lyd_node_leaf_list)(unsafe.Pointer(node)).value_str))
-		C.free(unsafe.Pointer(stringXpath))
-		if first {
-			return
-		}
-	}
-
-	if node.next != nil {
-		printRecursiveXPATH(node.next, false, node.parent)
-	}
-
-	if node.child != nil {
-		printRecursiveXPATH(node.child, false, node)
-	}
-
-	return
-}
-
 func getLastNonLeafNode(ctx *C.struct_ly_ctx, xpath string) *C.struct_lyd_node {
 	var node *C.struct_lyd_node
 	var tmp *C.struct_lyd_node
@@ -175,9 +143,7 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 		return errors.New("No data found: ly_set_free")
 	}
 
-	// bugfix, structs are wrongly allocated
-	// test validity with parent comparison
-	printRecursiveXPATH(C.get_item(set, C.int(0)), true, nil)
+	C.printSet(set)
 
 	return nil
 }

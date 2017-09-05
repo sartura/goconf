@@ -19,6 +19,8 @@
  * limitations under the License.
  */
 
+#include <stdbool.h>
+
 #include <libyang/libyang.h>
 #include <libyang/tree_data.h>
 #include "helper.h"
@@ -32,10 +34,23 @@ struct lyd_node *go_lyd_parse_mem(struct ly_ctx *ctx, const char *data, LYD_FORM
 	return lyd_parse_mem(ctx, data, format, options);
 }
 
-struct lyd_node *get_item(struct ly_set *set, int item) {
-	if (item > set->number) {
-		return NULL;
-	}
+void printXPATH(struct lyd_node *node) {
+	struct lyd_node *elem = NULL, *next = NULL;
 
-    return set->set.d[item];
+	LY_TREE_DFS_BEGIN(node, next, elem) {
+		if (LYS_LEAF == elem->schema->nodetype || LYS_LEAFLIST == elem->schema->nodetype) {
+			char *stringXpath = lyd_path(elem);
+			if (NULL == stringXpath) {
+				return;
+			}
+			printf("%s %s\n", stringXpath, ((struct lyd_node_leaf_list *) elem)->value_str);
+			free(stringXpath);
+		}
+	LY_TREE_DFS_END(node, next, elem) }
+}
+
+void printSet(struct ly_set *set) {
+	for (int i = 0; i < set->number; i++) {
+		printXPATH(set->set.d[i]);
+	}
 }
