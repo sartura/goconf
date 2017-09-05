@@ -121,7 +121,7 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 	}
 	defer C.lyxml_free(ctx, lyxml)
 	var xmlNoData *C.char
-	C.lyxml_print_mem(&xmlNoData, lyxml.child, 0)
+	C.lyxml_print_mem(&xmlNoData, lyxml.child, C.LYXML_PRINT_SIBLINGS)
 	if xmlNoData == nil {
 		return errors.New("libyang error: lyxml_print_mem")
 	}
