@@ -207,7 +207,7 @@ func main() {
 			// create new libyang context with the remote yang files
 			l.SetPrompt("\033[31m»\033[0m ")
 			auth = netconf.SSHConfigPassword(username, string(password))
-			s, err = netconf.DialSSH(ip+":"+port, auth)
+			s, err = netconf.DialSSH("["+ip+"]:"+port, auth)
 			if err != nil {
 				goto login_fail
 			}
