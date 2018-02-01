@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"unicode"
 
@@ -32,11 +34,72 @@ var completer = readline.NewPrefixCompleter(
 	readline.PcItem("quit"),
 )
 
+func runCommand() {
+	ctx, s := getNetconfContext()
+
+	datastore := flag.String("datastore", "running", "a string")
+	username := flag.String("username", "root", "a string")
+	password := flag.String("password", "root", "a string")
+	ip := flag.String("ip", "localhost", "a string")
+	port := flag.String("port", "830", "a string")
+	get := flag.String("get", "", "a string")
+
+	flag.Parse()
+
+	var err error
+
+	// create new libyang context with the remote yang files
+	sshConfig := &ssh.ClientConfig{
+		Config: ssh.Config{
+			Ciphers: []string{"aes128-cbc", "hmac-sha1"},
+		},
+		User:            *username,
+		Auth:            []ssh.AuthMethod{ssh.Password(*password)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	s, err = netconf.DialSSH("["+*ip+"]:"+*port, sshConfig)
+	if err != nil {
+		println("ERROR: ", err.Error())
+		goto fail
+	}
+	defer s.Close()
+
+	// create new libyang context with the remote yang files
+	ctx, err = getRemoteContext(s)
+	if err != nil {
+		println("ERROR: ", err.Error())
+		goto fail
+	}
+
+	err = netconfOperation(s, ctx, *datastore, *get, "", "get")
+	if err != nil {
+		println("ERROR: ", err.Error())
+		goto fail
+	}
+
+fail:
+	fmt.Println("failed to execute the operation")
+	return
+}
+
 func main() {
 	//libyang
 
+	var datastore string
+	var username string
+	var password []byte
+	var ip string
+	var port string
+
+	if len(os.Args) > 1 {
+		runCommand()
+		return
+	}
 	// set error callback for libyang
 	ctx, s := getNetconfContext()
+
+	datastore = "running"
 
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "\033[31m»\033[0m ",
@@ -49,14 +112,6 @@ func main() {
 		panic(err)
 	}
 	defer l.Close()
-
-	var datastore string
-	var username string
-	var password []byte
-	var ip string
-	var port string
-
-	datastore = "running"
 
 	setPasswordCfg := l.GenPasswordConfig()
 	setPasswordCfg.SetListener(func(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {

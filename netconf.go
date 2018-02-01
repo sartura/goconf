@@ -150,7 +150,7 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 
 func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 	var err error
-	ctx := C.ly_ctx_new(nil)
+	ctx := C.ly_ctx_new(nil, 0)
 
 	getSchemas := `
 	<get>
@@ -164,13 +164,13 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 	// Sends raw XML
 	reply, err := s.Exec(netconf.RawMethod(getSchemas))
 	if err != nil {
-		return nil, errors.New("libyang parse error")
+		return nil, errors.New("failed to fetch YANG schemas")
 	}
 
 	var data data
 	err = xml.Unmarshal([]byte(reply.Data), &data)
 	if err != nil {
-		return nil, errors.New("libyang parse error")
+		return nil, errors.New("Failed to parse YANG response")
 	}
 
 	getSchema := `
@@ -179,6 +179,9 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 	for i := range data.Schema {
 		if data.Schema[i].Format == "yang" {
 			schema := data.Schema[i]
+			if "ietf-yang-library" == schema.Identifier {
+				continue
+			}
 			request := fmt.Sprintf(getSchema, schema.Identifier, schema.Version, schema.Format)
 			reply, err := s.Exec(netconf.RawMethod(request))
 			if err != nil {
@@ -187,11 +190,12 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 			var yang string
 			err = xml.Unmarshal([]byte(reply.Data), &yang)
 			if err != nil {
-				return nil, errors.New("libyang parse error")
+				return nil, errors.New("Failed to parse YANG response")
 			}
 			module := C.lys_parse_mem(ctx, C.CString(yang), C.LYS_IN_YANG)
 			if module == nil {
-				return nil, errors.New("libyang parse error")
+				C.ly_errmsg()
+				return nil, errors.New("libyang error on lys_parse_mem")
 			}
 		}
 	}
@@ -224,7 +228,7 @@ func GoErrorCallback(level C.LY_LOG_LEVEL, msg *C.char, path *C.char) {
 
 func getNetconfContext() (*C.struct_ly_ctx, *netconf.Session) {
 	// prepare libyang logs
-	C.ly_set_log_clb((C.clb)(unsafe.Pointer(C.CErrorCallback)), 0)
+	//C.ly_set_log_clb((C.clb)(unsafe.Pointer(C.CErrorCallback)), 0)
 
 	var ctx *C.struct_ly_ctx
 	ctx = nil
