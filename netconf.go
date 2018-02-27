@@ -51,7 +51,9 @@ func getLastNonLeafNode(ctx *C.struct_ly_ctx, xpath string) *C.struct_lyd_node {
 	tmpShowLibyangLogs := showLibyangLogs
 	for item := range items {
 		newXpath = newXpath + items[item]
-		tmp = C.lyd_new_path(nil, ctx, C.CString(newXpath), nil, 0, 0)
+		cXpath := C.CString(newXpath)
+		defer C.free(unsafe.Pointer(cXpath))
+		tmp = C.lyd_new_path(nil, ctx, cXpath, nil, 0, 0)
 		if tmp != nil {
 			C.lyd_free_withsiblings(node)
 			node = tmp
@@ -65,6 +67,11 @@ func getLastNonLeafNode(ctx *C.struct_ly_ctx, xpath string) *C.struct_lyd_node {
 
 func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string, xpath string, value string, operationString string) error {
 
+	cXpath := C.CString(xpath)
+	cValue := C.CString(value)
+	defer C.free(unsafe.Pointer(cXpath))
+	defer C.free(unsafe.Pointer(cValue))
+
 	var operation int
 	switch {
 	case operationString == "get-config":
@@ -75,28 +82,37 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 		operation = C.LYD_OPT_EDIT
 	}
 
-	var node *C.struct_lyd_node
-	if operation == C.LYD_OPT_EDIT {
-		node = C.lyd_new_path(nil, ctx, C.CString(xpath), unsafe.Pointer(C.CString(value)), 0, 0)
-	} else {
-		node = getLastNonLeafNode(ctx, xpath)
-	}
-	if node == nil {
-		return errors.New("libyang error: lyd_new_path")
-	}
-	defer C.lyd_free_withsiblings(node)
-
 	var xpathXML *C.char
-	C.lyd_print_mem(&xpathXML, node, C.LYD_XML, 0)
-	if xpathXML == nil {
-		return errors.New("libyang error: lyd_print_mem")
+	if operation == C.LYD_OPT_EDIT {
+		var node *C.struct_lyd_node
+		if operation == C.LYD_OPT_EDIT {
+			node = C.lyd_new_path(nil, ctx, cXpath, unsafe.Pointer(cValue), 0, 0)
+		} else {
+			node = getLastNonLeafNode(ctx, xpath)
+		}
+		if node == nil {
+			return errors.New("libyang error: lyd_new_path")
+		}
+		defer C.lyd_free_withsiblings(node)
+
+		C.lyd_print_mem(&xpathXML, node, C.LYD_XML, 0)
+		if xpathXML == nil {
+			return errors.New("libyang error: lyd_print_mem")
+		}
+		defer C.free(unsafe.Pointer(xpathXML))
 	}
-	defer C.free(unsafe.Pointer(xpathXML))
+	/*
+		LYD_OPT_GETCONFIG
+
+		struct ly_set *ly_ctx_find_path(struct ly_ctx *ctx, const char *path);
+
+		parse the namespaces's
+	*/
 
 	netconfXML := ""
 	switch {
 	case operation == C.LYD_OPT_GETCONFIG:
-		netconfXML = "<get-config><source><" + datastore + "/></source><filter>" + C.GoString(xpathXML) + "</filter></get-config>"
+		netconfXML = "<get-config><source><" + datastore + "/></source><filter xmlns:ietf-interfaces=\"urn:ietf:params:xml:ns:yang:ietf-interfaces\" type=\"xpath\" select=\"" + xpath + "\"></filter></get-config>"
 	case operation == C.LYD_OPT_GET:
 		netconfXML = "<get><filter type=\"subtree\">" + C.GoString(xpathXML) + "</filter></get>"
 	case operation == C.LYD_OPT_EDIT:
@@ -115,7 +131,9 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 	}
 
 	// remove top <data> xml node
-	lyxml := C.lyxml_parse_mem(ctx, C.CString(reply.Data), C.LYXML_PARSE_MULTIROOT)
+	cReplyData := C.CString(reply.Data)
+	defer C.free(unsafe.Pointer(cReplyData))
+	lyxml := C.lyxml_parse_mem(ctx, cReplyData, C.LYXML_PARSE_MULTIROOT)
 	if lyxml == nil {
 		return errors.New("libyang error: lyxml_parse_mem")
 	}
@@ -133,7 +151,7 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 	}
 	defer C.lyd_free_withsiblings(dataNode)
 
-	set := C.lyd_find_path(dataNode, C.CString(xpath))
+	set := C.lyd_find_path(dataNode, cXpath)
 	if set == nil {
 		return errors.New("libyang error: lyd_find_path")
 	}
@@ -192,7 +210,9 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 			if err != nil {
 				return nil, errors.New("Failed to parse YANG response")
 			}
-			module := C.lys_parse_mem(ctx, C.CString(yang), C.LYS_IN_YANG)
+			cYang := C.CString(yang)
+			defer C.free(unsafe.Pointer(cYang))
+			module := C.lys_parse_mem(ctx, cYang, C.LYS_IN_YANG)
 			if module == nil {
 				C.ly_errmsg()
 				return nil, errors.New("libyang error on lys_parse_mem")
