@@ -214,7 +214,7 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 			defer C.free(unsafe.Pointer(cYang))
 			module := C.lys_parse_mem(ctx, cYang, C.LYS_IN_YANG)
 			if module == nil {
-				C.ly_errmsg()
+				C.ly_errmsg(ctx)
 				return nil, errors.New("libyang error on lys_parse_mem")
 			}
 		}
