@@ -10,7 +10,7 @@ import (
 
 	"encoding/xml"
 
-	"github.com/sartura/go-netconf/netconf"
+	"github.com/Juniper/go-netconf/netconf"
 )
 
 /*

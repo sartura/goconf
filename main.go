@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/Juniper/go-netconf/netconf"
 	"github.com/chzyer/readline"
-	"github.com/sartura/go-netconf/netconf"
 )
 
 func usage(w io.Writer) {
