@@ -40,29 +40,24 @@ type schema struct {
 	Location   string   `xml:"location"`
 }
 
-func getLastNonLeafNode(ctx *C.struct_ly_ctx, xpath string) *C.struct_lyd_node {
-	var node *C.struct_lyd_node
-	var tmp *C.struct_lyd_node
+func getModuleNames(ctx *C.struct_ly_ctx, xpath string) string {
+	xmlns := ""
+	var idx C.uint32_t
+	idx = 0
 
-	items := strings.Split(xpath, "/")
-	newXpath := ""
-
-	//turn off libyang logs
-	tmpShowLibyangLogs := showLibyangLogs
-	for item := range items {
-		newXpath = newXpath + items[item]
-		cXpath := C.CString(newXpath)
-		defer C.free(unsafe.Pointer(cXpath))
-		tmp = C.lyd_new_path(nil, ctx, cXpath, nil, 0, 0)
-		if tmp != nil {
-			C.lyd_free_withsiblings(node)
-			node = tmp
+	for {
+		/* get all module names from libyang context */
+		module := C.ly_ctx_get_module_iter((*C.const_ctx)(unsafe.Pointer(ctx)), &idx)
+		if nil == module {
+			break
 		}
-		newXpath = newXpath + "/"
+		/* if the module name is present in the xpath add it to the namespace */
+		if strings.ContainsAny(xpath, C.GoString(module.name)) {
+			xmlns = xmlns + " xmlns:" + C.GoString(module.name) + "='" + C.GoString(module.ns) + "' "
+		}
 	}
-	showLibyangLogs = tmpShowLibyangLogs
 
-	return node
+	return xmlns
 }
 
 func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string, xpath string, value string, operationString string) error {
@@ -83,40 +78,31 @@ func netconfOperation(s *netconf.Session, ctx *C.struct_ly_ctx, datastore string
 	}
 
 	var xpathXML *C.char
+	var xmlns = ""
 	if operation == C.LYD_OPT_EDIT {
-		var node *C.struct_lyd_node
-		if operation == C.LYD_OPT_EDIT {
-			node = C.lyd_new_path(nil, ctx, cXpath, unsafe.Pointer(cValue), 0, 0)
-		} else {
-			node = getLastNonLeafNode(ctx, xpath)
-		}
-		if node == nil {
+		node := C.lyd_new_path(nil, ctx, cXpath, unsafe.Pointer(cValue), 0, 0)
+		if nil == node {
 			return errors.New("libyang error: lyd_new_path")
 		}
 		defer C.lyd_free_withsiblings(node)
 
 		C.lyd_print_mem(&xpathXML, node, C.LYD_XML, 0)
-		if xpathXML == nil {
+		if nil == xpathXML {
 			return errors.New("libyang error: lyd_print_mem")
 		}
 		defer C.free(unsafe.Pointer(xpathXML))
+	} else {
+		xmlns = getModuleNames(ctx, xpath)
 	}
-	/*
-		LYD_OPT_GETCONFIG
-
-		struct ly_set *ly_ctx_find_path(struct ly_ctx *ctx, const char *path);
-
-		parse the namespaces's
-	*/
 
 	netconfXML := ""
 	switch {
 	case operation == C.LYD_OPT_GETCONFIG:
-		netconfXML = "<get-config><source><" + datastore + "/></source><filter xmlns:ietf-interfaces=\"urn:ietf:params:xml:ns:yang:ietf-interfaces\" type=\"xpath\" select=\"" + xpath + "\"></filter></get-config>"
+		netconfXML = "<get-config><source><" + datastore + "/></source><filter " + xmlns + " type=\"xpath\" select=\"" + xpath + "\"></filter></get-config>"
 	case operation == C.LYD_OPT_GET:
-		netconfXML = "<get><filter type=\"subtree\">" + C.GoString(xpathXML) + "</filter></get>"
+		netconfXML = "<get><filter " + xmlns + " type=\"xpath\" select=\"" + xpath + "\"></filter></get>"
 	case operation == C.LYD_OPT_EDIT:
-		netconfXML = "<edit-config xmlns:nc='urn:ietf:params:xml:ns:netconf:base:1.0'><target><" + datastore + "/></target><config>" + C.GoString(xpathXML) + "</config></edit-config>"
+		netconfXML = "<edit-config><target><" + datastore + "/></target><config>" + C.GoString(xpathXML) + "</config></edit-config>"
 	default:
 		return errors.New("NETCONF: invalid operation")
 	}

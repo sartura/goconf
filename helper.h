@@ -5,6 +5,8 @@
 #include <libyang/libyang.h>
 #include <libyang/tree_data.h>
 
+typedef const struct ly_ctx const_ctx;
+
 typedef void (*clb)(LY_LOG_LEVEL level, const char *msg, const char *path);
 void CErrorCallback(LY_LOG_LEVEL level, const char *msg, const char *path);
 
