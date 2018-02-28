@@ -43,6 +43,9 @@ func runCommand() {
 	ip := flag.String("ip", "localhost", "a string")
 	port := flag.String("port", "830", "a string")
 	get := flag.String("get", "", "a string")
+	getConfig := flag.String("get-config", "", "a string")
+	edit := flag.String("edit", "", "a string")
+	value := flag.String("value", "", "a string")
 
 	flag.Parse()
 
@@ -72,12 +75,27 @@ func runCommand() {
 		goto fail
 	}
 
-	err = netconfOperation(s, ctx, *datastore, *get, "", "get")
-	if err != nil {
-		println("ERROR: ", err.Error())
-		goto fail
+	if len(*get) > 0 {
+		err = netconfOperation(s, ctx, *datastore, *get, "", "get")
+		if err != nil {
+			println("ERROR: ", err.Error())
+			goto fail
+		}
+	} else if len(*getConfig) > 0 {
+		err = netconfOperation(s, ctx, *datastore, *getConfig, "", "get-config")
+		if err != nil {
+			println("ERROR: ", err.Error())
+			goto fail
+		}
+	} else if len(*edit) > 0 {
+		err = netconfOperation(s, ctx, *datastore, *edit, *value, "set")
+		if err != nil {
+			println("ERROR: ", err.Error())
+			goto fail
+		}
 	}
 
+	return
 fail:
 	fmt.Println("failed to execute the operation")
 	return
