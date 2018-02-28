@@ -37,15 +37,15 @@ var completer = readline.NewPrefixCompleter(
 func runCommand() {
 	ctx, s := getNetconfContext()
 
-	datastore := flag.String("datastore", "running", "a string")
-	username := flag.String("username", "root", "a string")
-	password := flag.String("password", "root", "a string")
-	ip := flag.String("ip", "localhost", "a string")
-	port := flag.String("port", "830", "a string")
-	get := flag.String("get", "", "a string")
-	getConfig := flag.String("get-config", "", "a string")
-	edit := flag.String("edit", "", "a string")
-	value := flag.String("value", "", "a string")
+	username := flag.String("username", "root", "NETCONF username")
+	password := flag.String("password", "root", "NETCONF password")
+	ip := flag.String("ip", "localhost", "ip address of the NETCONF server")
+	port := flag.String("port", "830", "port of the NETCONF server")
+	get := flag.String("get", "", "-get <xpath>")
+	getConfig := flag.String("get-config", "", "-get-config <xpath>")
+	edit := flag.String("edit", "", "-edit <xpath>, add/edit leaf and leaf-lists")
+	value := flag.String("value", "", "-value <value>, value for edit operation")
+	datastore := flag.String("datastore", "running", "datastore used for get-config and edit operation")
 
 	flag.Parse()
 

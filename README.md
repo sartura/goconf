@@ -17,12 +17,6 @@ $ make
 # make install
 ```
 
-If you want to create a static libyang binary too, add "-DSTATIC=true" to cmake.
-
-```
-$ cmake -DSTATIC=true ..
-```
-
 ## Include libyang into your project
 
 To use the libyang library in your go project add these lines of code under your import statement.
@@ -55,13 +49,29 @@ For a static build execute "go build" with additional flags:
 go build --ldflags '-extldflags "-static"'
 ```
 
-## Compile the example with docker
+## goconf command line
 
-If you don't want to install locally libyang you can use docker for a static or dynamic build. You have two bash scripts which will build a docker container, compile the code and close docker.
+For help use:
 
 ```
-$ ./build_static.sh
-# or
-$ ./build_dynamic.sh
+./goconf --help
+Usage of ./goconf:
+  -datastore string
+    	datastore used for get-config and edit operation (default "running")
+  -edit string
+    	-edit <xpath>, add/edit leaf and leaf-lists
+  -get string
+    	-get <xpath>
+  -get-config string
+    	-get-config <xpath>
+  -ip string
+    	ip address of the NETCONF server (default "localhost")
+  -password string
+    	NETCONF password (default "root")
+  -port string
+    	port of the NETCONF server (default "830")
+  -username string
+    	NETCONF username (default "root")
+  -value string
+    	-value <value>, value for edit operation
 ```
-
