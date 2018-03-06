@@ -206,13 +206,17 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 		}
 	}
 
-	// hack to keep alive the connection
-	//TODO fix this
+	/* send message to keep the connection alive */
 	go func() {
+		HelloMessage := `<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+							<capabilities>
+								<capability>urn:ietf:params:netconf:base:1.0</capability>
+							</capabilities>
+						</hello>`
 		ticker := time.NewTicker(18 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			_, err := s.Exec(netconf.RawMethod("<keep-alive/>"))
+			_, err := s.Exec(netconf.RawMethod(HelloMessage))
 			if err != nil {
 				if err.Error() == "WaitForFunc failed" {
 					return
