@@ -52,7 +52,7 @@ func getModuleNames(ctx *C.struct_ly_ctx, xpath string) string {
 			break
 		}
 		/* if the module name is present in the xpath add it to the namespace */
-		if strings.ContainsAny(xpath, C.GoString(module.name)) {
+		if strings.Contains(xpath, C.GoString(module.name)) {
 			xmlns = xmlns + " xmlns:" + C.GoString(module.name) + "='" + C.GoString(module.ns) + "' "
 		}
 	}
