@@ -208,11 +208,8 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 
 	/* send message to keep the connection alive */
 	go func() {
-		HelloMessage := `<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
-							<capabilities>
-								<capability>urn:ietf:params:netconf:base:1.0</capability>
-							</capabilities>
-						</hello>`
+		HelloMessage := ``
+
 		ticker := time.NewTicker(18 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
