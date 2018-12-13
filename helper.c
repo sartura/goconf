@@ -54,3 +54,8 @@ void printSet(struct ly_set *set) {
 		printXPATH(set->set.d[i]);
 	}
 }
+
+const char *get_features(struct lys_feature *features, int i) {
+    if (!features) return NULL;
+    return features[i].name;
+};

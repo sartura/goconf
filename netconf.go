@@ -203,8 +203,18 @@ func getRemoteContext(s *netconf.Session) (*C.struct_ly_ctx, error) {
 				C.ly_errmsg(ctx)
 				return nil, errors.New("libyang error on lys_parse_mem")
 			}
+			for i := 0; i < int(module.features_size); i++ {
+				rc := C.lys_features_enable(module, C.get_features(module.features, (C.int)(i)))
+				if 0 != rc {
+					fmt.Printf("Could not enable feature\n")
+				}
+			}
 		}
 	}
+
+	//lrc = lys_features_enable(module, schemas[s].enabled_features[i]);
+	//if (0 != lrc) {
+	//ERR("The feature %s is not defined in the yang model %s", schemas[s].enabled_features[i], ctx->yang_model);
 
 	/* send message to keep the connection alive */
 	go func() {

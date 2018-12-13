@@ -14,4 +14,7 @@ struct lyd_node *go_lyd_parse_mem(struct ly_ctx *ctx, const char *data, LYD_FORM
 
 void printSet(struct ly_set *set);
 
-#endif
+
+const char *get_features(struct lys_feature *features, int i);
+
+#endif /* HELPER_H */
